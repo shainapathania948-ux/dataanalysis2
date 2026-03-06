@@ -23,6 +23,10 @@ if(file!=None):
 )
 st.dataframe(data)
 st.info("file is successfully uploaded",icon='✔️')
+c1, c2, c3 = st.columns(3)
+c1.metric("Total Records", data.shape[0])
+c2.metric("Total Columns", data.shape[1])
+c3.metric("Missing Values", data.isnull().sum().sum())
 st.subheader(':rainbow[BASIC information of dataset]',divider='rainbow')
 tab1,tab2,tab3,tab4=st.tabs(['Summary','Top & Bottom','Data types','Columns'])
 with tab1:
