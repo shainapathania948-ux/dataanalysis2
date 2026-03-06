@@ -1,2 +1,5 @@
 install Librarries
-pandas plotly.express
+pandas 
+streamlit
+plotly.express
+numpy
