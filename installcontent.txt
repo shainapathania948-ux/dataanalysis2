@@ -1,2 +1,2 @@
 install Librarries
-pandas, plotly.express
+pandas plotly.express
