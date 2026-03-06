@@ -14,14 +14,9 @@ if(file!=None):
     if(file.name.endswith('csv')):
         data=pd.read_csv(file)
     else:
-        data=pd.read_excel(file)
-    #st.dataframe(data)
-    #st.dataframe(data)
-    #data2=data.head(5)
-    #st.dataframe(data2)   
+        data=pd.read_excel(file)   
     st.download_button(
         label="Download.csv",
-       # data=data2.to_csv(index=True),
          data=data.to_csv(index=True),
         file_name="datawork.csv",
         mime="text/csv"
@@ -56,13 +51,6 @@ count=st.button("count")
 if (count==True):
     result=data[Columns].value_counts().reset_index().head(toprows)
     st.dataframe(result)
-    #st.subheader("visualization",divider="gray")
-    #fig=px.bar(data_frame=result,x=Columns,y="count",text="count",template="plotly")
-    #st.plotly_chart(fig)
-    #fig=px.line(data_frame=result,x=Columns,y="count",text="count",template="plotly_white")
-    #st.plotly_chart(fig)
-    #fig=px.pie(data_frame=result,names=Columns,values="count")
-    #st.plotly_chart(fig) 
 st.write('The groupby lets you summarize data by specific groups')
 with st.expander("groupby your columns"):
     col1,col2,col3=st.columns(3)
