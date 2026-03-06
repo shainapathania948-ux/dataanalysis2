@@ -74,15 +74,29 @@ if(graphs=='line'):
     y_axis=st.selectbox('Choose Y Axis',options=list (result.columns))
     color=st.selectbox('Choose Colors',options=[None]+list(result.columns))
     facet_col=st.selectbox('Choose Additional Columns',options=[None]+list(result.columns))
-    fig=px.line(data_frame=result,x=x_axis,y=y_axis,color=color,facet_col=facet_col,marker='o')
+    fig=px.line(data_frame=result,x=x_axis,y=y_axis,color=color,facet_col=facet_col)
+    st.plotly_chart(fig)
+elif(graphs=='bar'):
+    x_axis=st.selectbox('Choose X Axis',options=list(result.columns))
+    y_axis=st.selectbox('Choose Y Axis',options=list(result.columns))
+    color=st.selectbox('Choose Color',options=[None]+list(result.columns))
+    facet_col=st.selectbox('Choose Additional Columns',options=[None]+list(result.columns))
+    fig=px.bar(data_frame=result,x=x_axis,y=y_axis,color=color,facet_col=facet_col,barmode='group')
+    st.plotly_chart(fig)
+elif(graphs=='sunburst'):
+    path=st.multiselect('Choose path',options=list(result.columns))
+    fig=px.sunburst(data_frame=result,path=path,values='newcol')
+    st.plotly_chart(fig)
+elif(graphs=='scatter'):
+    x_axis=st.selectbox('Choose X Axis',options=list(result.columns))
+    y_axis=st.selectbox('Choose Y Axis',options=list (result.columns))
+    color=st.selectbox('Choose Colors',options=[None]+list(result.columns))
+    size=st.selectbox('Choose Additional Columns',options=[None]+list(result.columns))
+    fig=px.scatter(data_frame=result, x=x_axis,y=y_axis,color=color,size=size,size_max=60)
     st.plotly_chart(fig)
 elif(graphs=='pie'):
     values=st.selectbox('Choose Numerical Values',options=list(result.columns))
     names=st.selectbox('Choose Labels',options=list(result.columns))
     fig=px.pie(data_frame=result,values=values,names=names)
     st.plotly_chart(fig)
-elif(graphs=='sunburst'):
-    path=st.multiselect('Choose Your Path',options=list(result.columns))
-    fig=px.sunburst(data_frame=result,path=path,values='newcol')
-    st.plotly_chart(fig)
-    
+
