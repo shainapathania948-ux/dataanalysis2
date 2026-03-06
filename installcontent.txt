@@ -1,5 +1,7 @@
 install Librarries
-pandas 
 streamlit
-plotly.express
+pandas
 numpy
+plotly
+matplotlib
+seaborn
