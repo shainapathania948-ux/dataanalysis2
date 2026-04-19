@@ -5,5 +5,3 @@ plotly
 matplotlib
 seaborn
 openpyxl
-sqlite3
-hashlib
