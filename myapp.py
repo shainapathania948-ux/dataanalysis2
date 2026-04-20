@@ -3,38 +3,43 @@ import plotly.express as px
 import streamlit as st
 import sqlite3
 import hashlib
+from sklearn.linear_model import LinearRegression
 
 # ------------------ PAGE SETUP ------------------
-st.set_page_config(
-    page_title="SMART DATA INSIGHTS",
-    page_icon="📈",
-    layout="wide"
-)
+st.set_page_config(page_title="SMART DATA INSIGHTS", page_icon="📈", layout="wide")
 
-# ------------------ DATABASE SETUP ------------------
+# ------------------ DATABASE ------------------
 conn = sqlite3.connect("data.db", check_same_thread=False)
 cursor = conn.cursor()
 
-# ------------------ USER TABLE ------------------
-def create_user_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT
-        )
-    """)
-    conn.commit()
+# ------------------ TABLES ------------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    username TEXT PRIMARY KEY,
+    password TEXT,
+    role TEXT
+)
+""")
 
-create_user_table()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS logs (
+    username TEXT,
+    action TEXT
+)
+""")
+conn.commit()
 
-# ------------------ HASH FUNCTION ------------------
+# ------------------ FUNCTIONS ------------------
 def make_hash(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ------------------ AUTH FUNCTIONS ------------------
-def add_user(username, password):
-    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", 
-                   (username, make_hash(password)))
+def log_action(user, action):
+    cursor.execute("INSERT INTO logs VALUES (?, ?)", (user, action))
+    conn.commit()
+
+def add_user(username, password, role):
+    cursor.execute("INSERT INTO users VALUES (?, ?, ?)", 
+                   (username, make_hash(password), role))
     conn.commit()
 
 def login_user(username, password):
@@ -42,11 +47,30 @@ def login_user(username, password):
                    (username, make_hash(password)))
     return cursor.fetchone()
 
+def clean_column(col):
+    col = col.strip()
+    col = col.replace(" ", "_")
+    col = col.replace("%", "percent")
+    col = col.replace("(", "")
+    col = col.replace(")", "")
+    col = col.replace("-", "_")
+    return col
+
+def create_table(table_name, columns):
+    clean_cols = [clean_column(col) for col in columns]
+    cols = ", ".join([f'"{col}" TEXT' for col in clean_cols])
+    cursor.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols})')
+    conn.commit()
+
+def get_tables():
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    return [table[0] for table in cursor.fetchall()]
+
 # ------------------ SESSION ------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ------------------ SIDEBAR LOGIN ------------------
+# ------------------ SIDEBAR AUTH ------------------
 st.sidebar.title("🔐 Authentication")
 menu = st.sidebar.selectbox("Menu", ["Login", "Signup"])
 
@@ -54,13 +78,14 @@ if menu == "Signup":
     st.subheader("Create Account")
     new_user = st.text_input("Username")
     new_pass = st.text_input("Password", type='password')
+    role = st.selectbox("Role", ["user", "admin"])
 
     if st.button("Signup"):
         try:
-            add_user(new_user, new_pass)
-            st.success("Account created successfully ✅")
+            add_user(new_user, new_pass, role)
+            st.success("Account created ✅")
         except:
-            st.error("User already exists!")
+            st.error("User already exists")
 
 elif menu == "Login":
     st.subheader("Login")
@@ -71,8 +96,9 @@ elif menu == "Login":
         user = login_user(username, password)
         if user:
             st.session_state.logged_in = True
-            st.session_state.username = username
-            st.success(f"Welcome {username} 👋")
+            st.session_state.username = user[0]
+            st.session_state.role = user[2]
+            st.success(f"Welcome {user[0]} 👋")
         else:
             st.error("Invalid Credentials")
 
@@ -80,56 +106,76 @@ elif menu == "Login":
 if st.session_state.logged_in:
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        #st.experimental_rerun()
+        st.session_state.clear()
+        st.rerun()
 
 # ================== MAIN APP ==================
 if st.session_state.logged_in:
 
-    st.title(":rainbow[SMART DATA INSIGHTS]")
-    st.header("📈 Data-Driven Insights for Smarter Decisions")
-    st.subheader("Simplifying Data Analysis for Business and Research", divider='rainbow')
+    st.title("📊 SMART DATA INSIGHTS")
 
-    # ------------------ DATA TABLE FUNCTIONS ------------------
-    def create_table(table_name, columns):
-        cols = ", ".join([f"{col} TEXT" for col in columns])
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table_name} ({cols})")
-        conn.commit()
+    # ------------------ ADMIN PANEL ------------------
+    if st.session_state.role == "admin":
+        st.sidebar.subheader("🛠 Admin Panel")
 
-    def get_tables():
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        return [table[0] for table in cursor.fetchall()]
+        if st.sidebar.button("View Users"):
+            users = pd.read_sql("SELECT username, role FROM users", conn)
+            st.dataframe(users)
+
+        del_user = st.sidebar.text_input("Delete User")
+        if st.sidebar.button("Delete"):
+            cursor.execute("DELETE FROM users WHERE username=?", (del_user,))
+            conn.commit()
+            st.success("User Deleted")
 
     # ------------------ FILE UPLOAD ------------------
-    file = st.file_uploader('Drop csv or excel file', type=['csv', 'xlsx'])
+    file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
 
     data = None
+
     if file is not None:
-        if file.name.endswith('csv'):
+        if file.name.endswith("csv"):
             data = pd.read_csv(file)
         else:
             data = pd.read_excel(file)
 
-        st.download_button(
-            label="Download.csv",
-            data=data.to_csv(index=True),
-            file_name="datawork.csv",
-            mime="text/csv"
-        )
+        log_action(st.session_state.username, "Uploaded File")
+        data.columns = [clean_column(col) for col in data.columns]
 
         st.dataframe(data)
-        st.info("File uploaded successfully ✔️")
 
         # ------------------ METRICS ------------------
         c1, c2, c3 = st.columns(3)
-        c1.metric("Total Records", data.shape[0])
-        c2.metric("Total Columns", data.shape[1])
-        c3.metric("Missing Values", data.isnull().sum().sum())
+        c1.metric("Rows", data.shape[0])
+        c2.metric("Columns", data.shape[1])
+        c3.metric("Missing", data.isnull().sum().sum())
 
-        # ------------------ DATABASE SAVE ------------------
-        st.subheader("💾 Save Data to Database")
-        table_name = st.text_input("Enter Table Name")
+        # ------------------ CLEANING ------------------
+        st.subheader("🧹 Data Cleaning")
 
-        if st.button("Save to Database"):
+        if st.checkbox("Remove Missing"):
+            data = data.dropna()
+
+        if st.checkbox("Remove Duplicates"):
+            data = data.drop_duplicates()
+
+        # ------------------ FILTER ------------------
+        st.subheader("🔍 Filter Data")
+
+        col = st.selectbox("Column", data.columns)
+        val = st.text_input("Value")
+
+        if st.button("Apply Filter"):
+            data = data[data[col].astype(str).str.contains(val)]
+            st.dataframe(data)
+
+        # ------------------ SAVE ------------------
+        st.subheader("💾 Save to Database")
+
+        table_name = st.text_input("Table Name")
+
+        if st.button("Save"):
             create_table(table_name, data.columns)
 
             for _, row in data.iterrows():
@@ -137,117 +183,98 @@ if st.session_state.logged_in:
                 cursor.execute(f"INSERT INTO {table_name} VALUES ({placeholders})", tuple(row.astype(str)))
 
             conn.commit()
-            st.success("Data saved to SQLite ✅")
+            st.success("Saved to DB")
 
-    # ------------------ LOAD DATABASE ------------------
-    st.subheader("📂 Load Data from Database")
+    # ------------------ LOAD DB ------------------
+    st.subheader("📂 Load Data")
 
     tables = get_tables()
 
     if tables:
-        selected_table = st.selectbox("Select Table", tables)
+        selected = st.selectbox("Select Table", tables)
 
-        if st.button("Load Data"):
-            query = f"SELECT * FROM {selected_table}"
-            db_data = pd.read_sql(query, conn)
-            data = db_data
+        if st.button("Load"):
+            data = pd.read_sql(f"SELECT * FROM {selected}", conn)
             st.dataframe(data)
 
         if st.button("Delete Table"):
-            cursor.execute(f"DROP TABLE {selected_table}")
+            cursor.execute(f"DROP TABLE {selected}")
             conn.commit()
-            st.warning("Table Deleted ❌")
+            st.warning("Deleted")
 
     # ------------------ ANALYSIS ------------------
     if data is not None:
 
-        result = data.copy()
+        st.subheader("📊 Analysis")
 
-        st.subheader(':rainbow[BASIC information of dataset]', divider='rainbow')
-        tab1, tab2, tab3, tab4 = st.tabs(['Summary', 'Top & Bottom', 'Data types', 'Columns'])
+        st.dataframe(data.describe())
 
-        with tab1:
-            st.write(f"There are {data.shape[0]} rows & {data.shape[1]} columns")
-            st.dataframe(data.describe())
+        # ------------------ KPIs ------------------
+        st.subheader("📈 KPIs")
 
-        with tab2:
-            st.subheader(":green[Top Rows]")
-            toprows = st.slider("No of Rows", 1, data.shape[0])
-            st.dataframe(data.head(toprows))
+        num_cols = data.select_dtypes(include='number').columns
 
-            st.subheader(":green[Bottom Rows]")
-            bottomrows = st.slider("Bottom Rows", 1, data.shape[0])
-            st.dataframe(data.tail(bottomrows))
+        if len(num_cols) > 0:
+            kpi_col = st.selectbox("Select Column", num_cols)
 
-        with tab3:
-            st.dataframe(data.dtypes)
-
-        with tab4:
-            st.write("Columns:", data.shape[1])
-            st.write("Column Names:", list(data.columns))
-
-        # ------------------ VALUE COUNT ------------------
-        st.subheader(":rainbow[Columns Value Count]", divider="rainbow")
-
-        with st.expander("Value Count"):
-            col1, col2 = st.columns(2)
-            with col1:
-                Columns = st.selectbox("Choose column", list(data.columns))
-            with col2:
-                num = st.number_input('Top Rows', min_value=1, step=1)
-
-            if st.button("Count"):
-                result = data[Columns].value_counts().reset_index().head(num)
-                st.dataframe(result)
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Mean", round(data[kpi_col].mean(),2))
+            c2.metric("Max", data[kpi_col].max())
+            c3.metric("Min", data[kpi_col].min())
 
         # ------------------ GROUPBY ------------------
-        with st.expander("Groupby"):
-            col1, col2, col3 = st.columns(3)
+        st.subheader("📊 Groupby")
 
-            with col1:
-                groupby_cols = st.multiselect('Groupby Columns', list(data.columns))
-            with col2:
-                operation_cols = st.selectbox('Operation Column', list(data.columns))
-            with col3:
-                operation = st.selectbox('Operation', ['sum', 'max', 'min', 'mean', 'median'])
+        g_cols = st.multiselect("Group Columns", data.columns)
+        op_col = st.selectbox("Operation Column", data.columns)
+        op = st.selectbox("Operation", ["sum","mean","max","min"])
 
-            if groupby_cols:
-                result = data.groupby(groupby_cols).agg(newcol=(operation_cols, operation)).reset_index()
-                st.dataframe(result)
+        if g_cols:
+            result = data.groupby(g_cols).agg({op_col:op}).reset_index()
+            st.dataframe(result)
+        else:
+            result = data
 
         # ------------------ VISUALIZATION ------------------
-        st.subheader("📊 Data Visualization", divider='gray')
+        st.subheader("📊 Visualization")
 
-        graphs = st.selectbox('Choose Graph', ['line', 'bar', 'scatter', 'pie', 'sunburst'])
+        chart = st.selectbox("Chart", ["line","bar","scatter","pie"])
 
-        if graphs == 'line':
-            x = st.selectbox('X Axis', result.columns)
-            y = st.selectbox('Y Axis', result.columns)
-            fig = px.line(result, x=x, y=y)
-            st.plotly_chart(fig)
+        x = st.selectbox("X Axis", result.columns)
+        y = st.selectbox("Y Axis", result.columns)
 
-        elif graphs == 'bar':
-            x = st.selectbox('X Axis', result.columns)
-            y = st.selectbox('Y Axis', result.columns)
-            fig = px.bar(result, x=x, y=y)
-            st.plotly_chart(fig)
+        if chart == "line":
+            st.plotly_chart(px.line(result, x=x, y=y))
 
-        elif graphs == 'scatter':
-            x = st.selectbox('X Axis', result.columns)
-            y = st.selectbox('Y Axis', result.columns)
-            fig = px.scatter(result, x=x, y=y)
-            st.plotly_chart(fig)
+        elif chart == "bar":
+            st.plotly_chart(px.bar(result, x=x, y=y))
 
-        elif graphs == 'pie':
-            values = st.selectbox('Values', result.columns)
-            names = st.selectbox('Labels', result.columns)
-            fig = px.pie(result, values=values, names=names)
-            st.plotly_chart(fig)
+        elif chart == "scatter":
+            st.plotly_chart(px.scatter(result, x=x, y=y))
 
-        elif graphs == 'sunburst':
-            path = st.multiselect('Path', result.columns)
-            fig = px.sunburst(result, path=path, values='newcol' if 'newcol' in result.columns else None)
-            st.plotly_chart(fig)
+        elif chart == "pie":
+            st.plotly_chart(px.pie(result, names=x, values=y))
+
+        # ------------------ ML MODEL ------------------
+        st.subheader("🤖 Prediction")
+
+        if len(num_cols) > 1:
+            target = st.selectbox("Target", num_cols)
+
+            if st.button("Train Model"):
+                df = data[num_cols].dropna()
+                X = df.drop(columns=[target])
+                y = df[target]
+
+                model = LinearRegression()
+                model.fit(X, y)
+
+                st.success("Model Trained ✅")
+
+        # ------------------ EXPORT ------------------
+        st.subheader("📥 Export")
+
+        st.download_button("Download CSV", data.to_csv(index=False), "data.csv")
 
 else:
-    st.warning("🔒 Please login to access the app")
+    st.warning("🔒 Please login")
