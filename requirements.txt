@@ -5,5 +5,4 @@ plotly
 matplotlib
 seaborn
 scikit-learn
-sqlite3
 openpyxl
