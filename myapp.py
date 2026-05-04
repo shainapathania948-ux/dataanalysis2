@@ -247,7 +247,8 @@ if st.session_state.logged_in:
 
         result = data.groupby(g_cols).agg({op_col:op}).reset_index() if g_cols else data
 
-      # VISUALIZATION SECTION
+        # VISUAL
+        # VISUALIZATION SECTION
 st.subheader("📊 Visualization")
 
 chart = st.selectbox(
