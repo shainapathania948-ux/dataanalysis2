@@ -258,52 +258,77 @@ if st.session_state.logged_in:
         elif chart=="pie": st.plotly_chart(px.pie(result,names=x,values=y))
 
         # ML
-        if len(num_cols) > 1:
-            st.subheader("🤖 Model Comparison")
+       if data is not None:
+    num_cols = data.select_dtypes(include="number").columns
 
-            target = st.selectbox("Select Target Column", num_cols)
+    if len(num_cols) > 1:
+        ...
+    st.subheader("🤖 Model Comparison")
 
-            if st.button("Compare Models"):
+    target = st.selectbox(
+        "Select Target Column",
+        num_cols,
+        key="target_col"
+    )
 
-                df = data[num_cols].dropna()
+    if st.button("Compare Models", key="compare_models"):
 
-                X = df.drop(columns=[target])
-                y = df[target]
+        df_ml = data[num_cols].dropna()
 
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-                models={
-                    "Linear Regression": LinearRegression(),
-                    "Decision Tree": DecisionTreeRegressor(),
-                    "Random Forest": RandomForestRegressor()
-                }
-                results=[]
-                for name,model in models.items():
-                    model.fit(X_train,y_train)
-                    preds=model.predict(X_test)
-                    r2 = r2_score(y_test, preds)
-                    mae = mean_absolute_error(y_test, preds)
-                    results.append({
-                        "Model": name,
-                        "R2 Score": round(r2, 3),
-                        "MAE": round(mae, 3)
-                    })
-                    result_df = pd.DataFrame(results)
+        X = df_ml.drop(columns=[target])
+        y = df_ml[target]
 
-                    st.write("### 📊 Model Results")
-                    st.dataframe(result_df)
-                    #-------------charts
-                    st.write("### 📈 Performance Comparison")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
-                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
-                    st.plotly_chart(chart)
+        models = {
+            "Linear Regression": LinearRegression(),
+            "Decision Tree": DecisionTreeRegressor(),
+            "Random Forest": RandomForestRegressor()
+        }
 
-                    chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
-                    st.plotly_chart(chart2)
-                    #-----------------Best Mode----------
-                    best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
-                    st.success(f"🏆 Best Model: {best_model['Model']}")
+        results = []
 
+        for name, model in models.items():
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
 
+            results.append({
+                "Model": name,
+                "R2 Score": round(r2_score(y_test, preds), 3),
+                "MAE": round(mean_absolute_error(y_test, preds), 3)
+            })
+
+        result_df = pd.DataFrame(results)
+
+        st.write("### 📊 Model Results")
+        st.dataframe(result_df)
+
+        st.write("### 📈 Performance Comparison")
+
+        fig1 = px.bar(
+            result_df,
+            x="Model",
+            y="R2 Score",
+            title="R2 Score Comparison"
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+
+        fig2 = px.bar(
+            result_df,
+            x="Model",
+            y="MAE",
+            title="MAE Comparison"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+        best_model = result_df.sort_values(
+            by="R2 Score",
+            ascending=False
+        ).iloc[0]
+
+        st.success(f"🏆 Best Model: {best_model['Model']}")
                 
 
         # AI INSIGHTS
