@@ -277,7 +277,7 @@ if st.session_state.logged_in:
                     "Random Forest": RandomForestRegressor()
                 }
                 results=[]
-                for name,model in models.items():
+             for name,model in models.items():
                     model.fit(X_train,y_train)
                     preds=model.predict(X_test)
                     r2 = r2_score(y_test, preds)
@@ -287,21 +287,21 @@ if st.session_state.logged_in:
                     "R2 Score": round(r2, 3),
                     "MAE": round(mae, 3)
                     })
-                result_df = pd.DataFrame(results)
+            result_df = pd.DataFrame(results)
 
-                st.write("### 📊 Model Results")
-                st.dataframe(result_df)
+            st.write("### 📊 Model Results")
+            st.dataframe(result_df)
                     #-------------charts
-                st.write("### 📈 Performance Comparison")
+            st.write("### 📈 Performance Comparison")
 
-                chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
-                st.plotly_chart(chart)
+            chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+            st.plotly_chart(chart)
 
-                chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
-                 st.plotly_chart(chart2)
+            chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
+            st.plotly_chart(chart2)
                     #-----------------Best Mode----------
-                best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
-                st.success(f"🏆 Best Model: {best_model['Model']}")
+            best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
+            st.success(f"🏆 Best Model: {best_model['Model']}")
 
 
                 
