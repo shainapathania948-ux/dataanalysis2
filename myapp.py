@@ -258,9 +258,9 @@ if st.session_state.logged_in:
         elif chart=="pie": st.plotly_chart(px.pie(result,names=x,values=y))
 
         # ML
-    if len(num_cols) > 1:
-        ...
-    st.subheader("🤖 Model Comparison")
+   if len(num_cols) > 1:
+            st.subheader("🤖 Model Comparison")
+
 
     target = st.selectbox(
         "Select Target Column",
