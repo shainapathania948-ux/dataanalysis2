@@ -259,7 +259,7 @@ if st.session_state.logged_in:
 
         # ML
    if len(num_cols) > 1:
-            st.subheader("🤖 Model Comparison")
+    st.subheader("🤖 Model Comparison")
 
 
     target = st.selectbox(
