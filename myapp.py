@@ -257,80 +257,55 @@ if st.session_state.logged_in:
         elif chart=="scatter": st.plotly_chart(px.scatter(result,x=x,y=y))
         elif chart=="pie": st.plotly_chart(px.pie(result,names=x,values=y))
 
-        # ML
+        
        # ML MODEL COMPARISON
-if len(num_cols) > 1:
-    st.subheader("🤖 Model Comparison")
+# ML MODEL COMPARISON
+if data is not None:
 
-    target = st.selectbox(
-        "Select Target Column",
-        num_cols,
-        key="target_column"
-    )
+    num_cols = data.select_dtypes(include="number").columns
 
-    if st.button("Compare Models", key="compare_btn"):
+    if len(num_cols) > 1:
+        st.subheader("🤖 Model Comparison")
 
-        df_ml = data[num_cols].dropna()
-
-        X = df_ml.drop(columns=[target])
-        y_target = df_ml[target]
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y_target, test_size=0.2, random_state=42
+        target = st.selectbox(
+            "Select Target Column",
+            num_cols,
+            key="target_column"
         )
 
-        models = {
-            "Linear Regression": LinearRegression(),
-            "Decision Tree": DecisionTreeRegressor(random_state=42),
-            "Random Forest": RandomForestRegressor(random_state=42)
-        }
+        if st.button("Compare Models", key="compare_btn"):
+            df_ml = data[num_cols].dropna()
 
-        results = []
+            X = df_ml.drop(columns=[target])
+            y_target = df_ml[target]
 
-        # sirf training + metrics collection
-        for name, model in models.items():
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y_target, test_size=0.2, random_state=42
+            )
 
-            r2 = r2_score(y_test, preds)
-            mae = mean_absolute_error(y_test, preds)
+            models = {
+                "Linear Regression": LinearRegression(),
+                "Decision Tree": DecisionTreeRegressor(random_state=42),
+                "Random Forest": RandomForestRegressor(random_state=42)
+            }
 
-            results.append({
-                "Model": name,
-                "R2 Score": round(r2, 3),
-                "MAE": round(mae, 3)
-            })
+            results = []
 
-        # loop ke baad ek hi dataframe
-        result_df = pd.DataFrame(results)
+            for name, model in models.items():
+                model.fit(X_train, y_train)
+                preds = model.predict(X_test)
 
-        st.write("### 📊 Model Comparison Table")
-        st.dataframe(result_df, use_container_width=True)
+                results.append({
+                    "Model": name,
+                    "R2 Score": round(r2_score(y_test, preds), 3),
+                    "MAE": round(mean_absolute_error(y_test, preds), 3)
+                })
 
-        st.write("### 📈 R2 Score Comparison")
-        fig1 = px.bar(
-            result_df,
-            x="Model",
-            y="R2 Score",
-            title="R2 Score Comparison"
-        )
-        st.plotly_chart(fig1, use_container_width=True)
+            result_df = pd.DataFrame(results)
+            st.dataframe(result_df)
 
-        st.write("### 📉 MAE Comparison")
-        fig2 = px.bar(
-            result_df,
-            x="Model",
-            y="MAE",
-            title="MAE Comparison"
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-        # final best model sirf ek baar
-        best_model = result_df.loc[result_df["R2 Score"].idxmax()]
-
-        st.success(
-            f"🏆 Best Model: {best_model['Model']} | R2 Score: {best_model['R2 Score']}"
-        )
+            best_model = result_df.loc[result_df["R2 Score"].idxmax()]
+            st.success(f"🏆 Best Model: {best_model['Model']}")
 
                 
 
