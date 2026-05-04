@@ -240,13 +240,17 @@ if st.session_state.logged_in:
             c2.metric("Max",data[col].max())
             c3.metric("Min",data[col].min())
 
-        # GROUPBY
-        g_cols = st.multiselect("Group Columns", data.columns)
-        op_col = st.selectbox("Operation Column", data.columns)
-        op = st.selectbox("Operation", ["sum","mean","max","min"])
+      # GROUPBY
+g_cols = st.multiselect("Group Columns", data.columns)
 
-        result = data.groupby(g_cols).agg({op_col:op}).reset_index() if g_cols else data
+op_col = st.selectbox("Operation Column", data.columns)
 
+op = st.selectbox("Operation", ["sum", "mean", "max", "min"])
+
+result = (
+    data.groupby(g_cols).agg({op_col: op}).reset_index()
+    if g_cols else data
+)
         # VISUAL
         # VISUALIZATION SECTION
 st.subheader("📊 Visualization")
