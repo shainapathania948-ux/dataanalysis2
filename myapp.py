@@ -284,15 +284,18 @@ if st.session_state.logged_in:
                     mae = mean_absolute_error(y_test, preds)
                     results.append({
                         "Model": name,
-                        "R2 Score": round(r2, 3),
-                        "MAE": round(mae, 3)
+                        "R2 Score": round(r2, 1),
+                        "MAE": round(mae, 1)
                     })
                     result_df = pd.DataFrame(results)
 
                     st.write("### 📊 Model Results")
                     st.dataframe(result_df)
-                    #-------------charts
+                    #-------------charts---------------
                     st.write("### 📈 Performance Comparison")
+
+                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+                    st.plotly_chart(chart)
 
                     chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
                     st.plotly_chart(chart2)
