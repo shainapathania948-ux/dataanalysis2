@@ -262,7 +262,7 @@ if st.session_state.logged_in:
             st.subheader("Model Comparison")
             target = st.selectbox("Target Column", num_cols)
 
-            if st.button("Compare Models"):
+         if st.button("Compare Models"):
                 df = data[num_cols].dropna()
 
                 X = df.drop(columns=[target])
@@ -278,9 +278,9 @@ if st.session_state.logged_in:
                     "Random Forest": RandomForestRegressor(random_state=42),
                 }
 
-                results = []
+          results = []
 
-                for name, model in models.items():
+                    for name, model in models.items():
                     model.fit(X_train, y_train)
                     predictions = model.predict(X_test)
 
@@ -290,14 +290,14 @@ if st.session_state.logged_in:
                         "MAE": round(mean_absolute_error(y_test, predictions), 3),
                     })
 
-                result_df = pd.DataFrame(results)
-                st.dataframe(result_df)
+           result_df = pd.DataFrame(results)
+           st.dataframe(result_df)
 
-                fig = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
-                st.plotly_chart(fig, use_container_width=True)
+           fig = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+           st.plotly_chart(fig, use_container_width=True)
 
-                best_model = result_df.loc[result_df["R2 Score"].idxmax()]
-                st.success(f"Best Model: {best_model['Model']}")
+          best_model = result_df.loc[result_df["R2 Score"].idxmax()]
+          st.success(f"Best Model: {best_model['Model']}")
 
 else:
     st.warning("Please login first")
