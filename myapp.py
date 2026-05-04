@@ -284,8 +284,8 @@ if st.session_state.logged_in:
                     mae = mean_absolute_error(y_test, preds)
                     results.append({
                         "Model": name,
-                        "R2 Score": round(r2, 1),
-                        "MAE": round(mae, 1)
+                        "R2 Score": round(r2,41),
+                        "MAE": round(mae, 41)
                     })
                     result_df = pd.DataFrame(results)
 
