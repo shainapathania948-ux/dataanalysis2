@@ -227,174 +227,105 @@ if st.session_state.logged_in:
     # ANALYSIS
     if data is not None:
 
-     st.subheader("📊 Analysis")
-     st.dataframe(data.describe())
+        st.subheader("📊 Analysis")
+        st.dataframe(data.describe())
 
-    num_cols = data.select_dtypes(include="number").columns
+        num_cols = data.select_dtypes(include='number').columns
 
-    # KPI
-    if len(num_cols) > 0:
-        col = st.selectbox("KPI Column", num_cols)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Mean", round(data[col].mean(), 2))
-        c2.metric("Max", data[col].max())
-        c3.metric("Min", data[col].min())
+        # KPI
+        if len(num_cols)>0:
+            col = st.selectbox("KPI Column",num_cols)
+            c1,c2,c3 = st.columns(3)
+            c1.metric("Mean",round(data[col].mean(),2))
+            c2.metric("Max",data[col].max())
+            c3.metric("Min",data[col].min())
 
-    # GROUPBY
-    g_cols = st.multiselect("Group Columns", data.columns)
+        # GROUPBY
+        g_cols = st.multiselect("Group Columns", data.columns)
+        op_col = st.selectbox("Operation Column", data.columns)
+        op = st.selectbox("Operation", ["sum","mean","max","min"])
 
-    op_col = st.selectbox("Operation Column", data.columns)
+        result = data.groupby(g_cols).agg({op_col:op}).reset_index() if g_cols else data
 
-    op = st.selectbox("Operation", ["sum", "mean", "max", "min"])
+        # VISUAL
+        chart = st.selectbox("Chart",["line","bar","scatter","pie"])
+        x = st.selectbox("X",result.columns)
+        y = st.selectbox("Y",result.columns)
 
-    result = (
-        data.groupby(g_cols).agg({op_col: op}).reset_index()
-        if g_cols else data
-    )
+        if chart=="line": st.plotly_chart(px.line(result,x=x,y=y))
+        elif chart=="bar": st.plotly_chart(px.bar(result,x=x,y=y))
+        elif chart=="scatter": st.plotly_chart(px.scatter(result,x=x,y=y))
+        elif chart=="pie": st.plotly_chart(px.pie(result,names=x,values=y))
 
-    # VISUALIZATION
-    st.subheader("📊 Visualization")
+        # ML
+        if len(num_cols) > 1:
+            st.subheader("🤖 Model Comparison")
 
-    chart = st.selectbox(
-        "Chart",
-        ["line", "bar", "scatter", "pie", "sunburst"],
-        key="chart_select"
-    )
+            target = st.selectbox("Select Target Column", num_cols)
 
-    if chart in ["line", "bar", "scatter", "pie"]:
+            if st.button("Compare Models"):
 
-        x = st.selectbox("X Axis", result.columns.tolist(), key="x_axis")
-        y = st.selectbox("Y Axis", result.columns.tolist(), key="y_axis")
+                df = data[num_cols].dropna()
 
-        if chart == "line":
-            st.plotly_chart(px.line(result, x=x, y=y), use_container_width=True)
+                X = df.drop(columns=[target])
+                y = df[target]
 
-        elif chart == "bar":
-            st.plotly_chart(px.bar(result, x=x, y=y), use_container_width=True)
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+                models={
+                    "Linear Regression": LinearRegression(),
+                    "Decision Tree": DecisionTreeRegressor(),
+                    "Random Forest": RandomForestRegressor()
+                }
+                results=[]
+                for name,model in models.items():
+                    model.fit(X_train,y_train)
+                    preds=model.predict(X_test)
+                    r2 = r2_score(y_test, preds)
+                    mae = mean_absolute_error(y_test, preds)
+                    results.append({
+                        "Model": name,
+                        "R2 Score": round(r2, 3),
+                        "MAE": round(mae, 3)
+                    })
+                    result_df = pd.DataFrame(results)
 
-        elif chart == "scatter":
-            st.plotly_chart(px.scatter(result, x=x, y=y), use_container_width=True)
+                    st.write("### 📊 Model Results")
+                    st.dataframe(result_df)
+                    #-------------charts
+                    st.write("### 📈 Performance Comparison")
 
-        elif chart == "pie":
-            st.plotly_chart(px.pie(result, names=x, values=y), use_container_width=True)
+                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+                    st.plotly_chart(chart)
 
-    elif chart == "sunburst":
+                    chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
+                    st.plotly_chart(chart2)
+                    #-----------------Best Mode----------
+                    best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
+                    st.success(f"🏆 Best Model: {best_model['Model']}")
 
-        hierarchy = st.multiselect(
-            "Select Hierarchy Columns",
-            result.columns.tolist(),
-            default=result.columns[:2].tolist(),
-            key="sunburst_hierarchy"
-        )
 
-        numeric_cols = result.select_dtypes(include="number").columns.tolist()
+                
 
-        if numeric_cols:
-            value_col = st.selectbox(
-                "Select Value Column",
-                numeric_cols,
-                key="sunburst_value"
-            )
+        # AI INSIGHTS
+        st.subheader("🧠 Smart Insights")
 
-            if len(hierarchy) > 0:
-                fig = px.sunburst(
-                    result,
-                    path=hierarchy,
-                    values=value_col
-                )
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("No numeric columns available")
-   # ML MODEL
-if data is not None:
-    num_cols = data.select_dtypes(include="number").columns
+        domain=detect_domain(data)
+        st.write(f"Dataset Type: **{domain}**")
 
-    if len(num_cols) > 1:
-        ...
-    st.subheader("🤖 Model Comparison")
+        #st.write("### Steps")
+        # for s in generate_steps(data): st.write(s)
 
-    target = st.selectbox(
-        "Select Target Column",
-        num_cols,
-        key="target_col"
-    )
+        st.write("### Insights")
+        for i in generate_insights(data): st.write(i)
 
-    if st.button("Compare Models", key="compare_models"):
+        st.write("### Recommendations")
+        for r in generate_recommendations(domain): st.write(r)
 
-        df_ml = data[num_cols].dropna()
+        #st.write("### Improve Prediction")
+        #for t in prediction_tips(): st.write(t)
 
-        X = df_ml.drop(columns=[target])
-        y = df_ml[target]
+        # EXPORT
+        st.download_button("Download CSV",data.to_csv(index=False),"data.csv")
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
-        models = {
-            "Linear Regression": LinearRegression(),
-            "Decision Tree": DecisionTreeRegressor(),
-            "Random Forest": RandomForestRegressor()
-        }
-
-        results = []
-
-        for name, model in models.items():
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
-
-            results.append({
-                "Model": name,
-                "R2 Score": round(r2_score(y_test, preds), 3),
-                "MAE": round(mean_absolute_error(y_test, preds), 3)
-            })
-
-        result_df = pd.DataFrame(results)
-
-        st.write("### 📊 Model Results")
-        st.dataframe(result_df)
-
-        st.write("### 📈 Performance Comparison")
-
-        fig1 = px.bar(
-            result_df,
-            x="Model",
-            y="R2 Score",
-            title="R2 Score Comparison"
-        )
-        st.plotly_chart(fig1, use_container_width=True)
-
-        fig2 = px.bar(
-            result_df,
-            x="Model",
-            y="MAE",
-            title="MAE Comparison"
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-        best_model = result_df.sort_values(
-            by="R2 Score",
-            ascending=False
-        ).iloc[0]
-
-        st.success(f"🏆 Best Model: {best_model['Model']}")
-    # AI INSIGHTS
-    st.subheader("🧠 Smart Insights")
-
-    domain = detect_domain(data)
-    st.write(f"Dataset Type: **{domain}**")
-
-    st.write("### Insights")
-    for i in generate_insights(data):
-        st.write(i)
-
-    st.write("### Recommendations")
-    for r in generate_recommendations(domain):
-        st.write(r)
-
-    st.download_button(
-        "Download CSV",
-        data.to_csv(index=False),
-        "data.csv"
-    )
 else:
     st.warning("🔒 Please login")
