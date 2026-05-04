@@ -227,181 +227,147 @@ if st.session_state.logged_in:
     # ANALYSIS
     if data is not None:
 
-        st.subheader("📊 Analysis")
-        st.dataframe(data.describe())
+     st.subheader("📊 Analysis")
+     st.dataframe(data.describe())
 
-        num_cols = data.select_dtypes(include='number').columns
+    num_cols = data.select_dtypes(include="number").columns
 
-        # KPI
-        if len(num_cols)>0:
-            col = st.selectbox("KPI Column",num_cols)
-            c1,c2,c3 = st.columns(3)
-            c1.metric("Mean",round(data[col].mean(),2))
-            c2.metric("Max",data[col].max())
-            c3.metric("Min",data[col].min())
+    # KPI
+    if len(num_cols) > 0:
+        col = st.selectbox("KPI Column", num_cols)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Mean", round(data[col].mean(), 2))
+        c2.metric("Max", data[col].max())
+        c3.metric("Min", data[col].min())
 
-      # GROUPBY
-g_cols = st.multiselect("Group Columns", data.columns)
+    # GROUPBY
+    g_cols = st.multiselect("Group Columns", data.columns)
 
-op_col = st.selectbox("Operation Column", data.columns)
+    op_col = st.selectbox("Operation Column", data.columns)
 
-op = st.selectbox("Operation", ["sum", "mean", "max", "min"])
+    op = st.selectbox("Operation", ["sum", "mean", "max", "min"])
 
-result = (
-    data.groupby(g_cols).agg({op_col: op}).reset_index()
-    if g_cols else data
-)
-        # VISUAL
-        # VISUALIZATION SECTION
-st.subheader("📊 Visualization")
-
-chart = st.selectbox(
-    "Chart",
-    ["line", "bar", "scatter", "pie", "sunburst"],
-    key="chart_select"
-)
-
-# -------- Normal Charts --------
-if chart in ["line", "bar", "scatter", "pie"]:
-
-    x = st.selectbox(
-        "X Axis",
-        result.columns.tolist(),
-        key="x_axis"
+    result = (
+        data.groupby(g_cols).agg({op_col: op}).reset_index()
+        if g_cols else data
     )
 
-    y = st.selectbox(
-        "Y Axis",
-        result.columns.tolist(),
-        key="y_axis"
+    # VISUALIZATION
+    st.subheader("📊 Visualization")
+
+    chart = st.selectbox(
+        "Chart",
+        ["line", "bar", "scatter", "pie", "sunburst"],
+        key="chart_select"
     )
 
-    if chart == "line":
-        fig = px.line(result, x=x, y=y, title="Line Chart")
-        st.plotly_chart(fig, use_container_width=True)
+    if chart in ["line", "bar", "scatter", "pie"]:
 
-    elif chart == "bar":
-        fig = px.bar(result, x=x, y=y, title="Bar Chart")
-        st.plotly_chart(fig, use_container_width=True)
+        x = st.selectbox("X Axis", result.columns.tolist(), key="x_axis")
+        y = st.selectbox("Y Axis", result.columns.tolist(), key="y_axis")
 
-    elif chart == "scatter":
-        fig = px.scatter(result, x=x, y=y, title="Scatter Chart")
-        st.plotly_chart(fig, use_container_width=True)
+        if chart == "line":
+            st.plotly_chart(px.line(result, x=x, y=y), use_container_width=True)
 
-    elif chart == "pie":
-        fig = px.pie(result, names=x, values=y, title="Pie Chart")
-        st.plotly_chart(fig, use_container_width=True)
+        elif chart == "bar":
+            st.plotly_chart(px.bar(result, x=x, y=y), use_container_width=True)
 
+        elif chart == "scatter":
+            st.plotly_chart(px.scatter(result, x=x, y=y), use_container_width=True)
 
-# -------- Sunburst Chart --------
-elif chart == "sunburst":
+        elif chart == "pie":
+            st.plotly_chart(px.pie(result, names=x, values=y), use_container_width=True)
 
-    hierarchy = st.multiselect(
-        "Select Hierarchy Columns",
-        result.columns.tolist(),
-        default=result.columns[:2].tolist(),
-        key="sunburst_hierarchy"
-    )
+    elif chart == "sunburst":
 
-    numeric_cols = result.select_dtypes(include="number").columns.tolist()
-
-    if numeric_cols:
-        value_col = st.selectbox(
-            "Select Value Column",
-            numeric_cols,
-            key="sunburst_value"
+        hierarchy = st.multiselect(
+            "Select Hierarchy Columns",
+            result.columns.tolist(),
+            default=result.columns[:2].tolist(),
+            key="sunburst_hierarchy"
         )
 
-        if len(hierarchy) > 0:
-            fig = px.sunburst(
-                result,
-                path=hierarchy,
-                values=value_col,
-                title="Sunburst Chart"
+        numeric_cols = result.select_dtypes(include="number").columns.tolist()
+
+        if numeric_cols:
+            value_col = st.selectbox(
+                "Select Value Column",
+                numeric_cols,
+                key="sunburst_value"
             )
-            st.plotly_chart(fig, use_container_width=True)
 
-    else:
-        st.warning("No numeric columns available for Sunburst chart")
-        # ML
-        if len(num_cols) > 1:
-         st.subheader("🤖 Model Comparison")
+            if len(hierarchy) > 0:
+                fig = px.sunburst(
+                    result,
+                    path=hierarchy,
+                    values=value_col
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No numeric columns available")
 
-    target = st.selectbox("Select Target Column", num_cols)
+    # ML MODEL
+    if len(num_cols) > 1:
+        st.subheader("🤖 Model Comparison")
 
-    if st.button("Compare Models"):
+        target = st.selectbox("Select Target Column", num_cols)
 
-        df = data[num_cols].dropna()
+        if st.button("Compare Models"):
 
-        X = df.drop(columns=[target])
-        y = df[target]
+            df = data[num_cols].dropna()
+            X = df.drop(columns=[target])
+            y = df[target]
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
 
-        models = {
-            "Linear Regression": LinearRegression(),
-            "Decision Tree": DecisionTreeRegressor(),
-            "Random Forest": RandomForestRegressor()
-        }
+            models = {
+                "Linear Regression": LinearRegression(),
+                "Decision Tree": DecisionTreeRegressor(),
+                "Random Forest": RandomForestRegressor()
+            }
 
-        results = []
+            results = []
 
-        for name, model in models.items():
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
+            for name, model in models.items():
+                model.fit(X_train, y_train)
+                preds = model.predict(X_test)
 
-            r2 = r2_score(y_test, preds)
-            mae = mean_absolute_error(y_test, preds)
+                results.append({
+                    "Model": name,
+                    "R2 Score": round(r2_score(y_test, preds), 3),
+                    "MAE": round(mean_absolute_error(y_test, preds), 3)
+                })
 
-            results.append({
-                "Model": name,
-                "R2 Score": round(r2, 3),
-                "MAE": round(mae, 3)
-            })
+            result_df = pd.DataFrame(results)
+            st.dataframe(result_df)
 
-        # loop khatam hone ke baad
-        result_df = pd.DataFrame(results)
+            best_model = result_df.sort_values(
+                by="R2 Score",
+                ascending=False
+            ).iloc[0]
 
-        st.write("### 📊 Model Results")
-        st.dataframe(result_df)
+            st.success(f"🏆 Best Model: {best_model['Model']}")
 
-        st.write("### 📈 Performance Comparison")
-        chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
-        st.plotly_chart(chart)
+    # AI INSIGHTS
+    st.subheader("🧠 Smart Insights")
 
-        chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
-        st.plotly_chart(chart2)
+    domain = detect_domain(data)
+    st.write(f"Dataset Type: **{domain}**")
 
-        best_model = result_df.sort_values(
-            by="R2 Score", ascending=False
-        ).iloc[0]
+    st.write("### Insights")
+    for i in generate_insights(data):
+        st.write(i)
 
-        st.success(f"🏆 Best Model: {best_model['Model']}")
+    st.write("### Recommendations")
+    for r in generate_recommendations(domain):
+        st.write(r)
 
-                
-
-        # AI INSIGHTS
-        st.subheader("🧠 Smart Insights")
-
-        domain=detect_domain(data)
-        st.write(f"Dataset Type: **{domain}**")
-
-        #st.write("### Steps")
-        # for s in generate_steps(data): st.write(s)
-
-        st.write("### Insights")
-        for i in generate_insights(data): st.write(i)
-
-        st.write("### Recommendations")
-        for r in generate_recommendations(domain): st.write(r)
-
-        #st.write("### Improve Prediction")
-        #for t in prediction_tips(): st.write(t)
-
-        # EXPORT
-        st.download_button("Download CSV",data.to_csv(index=False),"data.csv")
-
+    st.download_button(
+        "Download CSV",
+        data.to_csv(index=False),
+        "data.csv"
+    )
 else:
     st.warning("🔒 Please login")
