@@ -283,10 +283,11 @@ if st.session_state.logged_in:
                     r2 = r2_score(y_test, preds)
                     mae = mean_absolute_error(y_test, preds)
                     results.append({
-                        "Model": name,
-                        "R2 Score": round(r2, 3),
-                        "MAE": round(mae, 3)
-                    })
+                    "Model": name,
+                    "R2 Score": round(r2_score(y_test, preds), 3),
+                    "MAE": round(mean_absolute_error(y_test, preds), 3)
+                })
+
                     result_df = pd.DataFrame(results)
 
                     st.write("### 📊 Model Results")
@@ -294,13 +295,14 @@ if st.session_state.logged_in:
                     #-------------charts
                     st.write("### 📈 Performance Comparison")
 
-                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+                    chart = px.bar( x="Model", y="R2 Score", title="R2 Score Comparison")
                     st.plotly_chart(chart)
 
-                    chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
+                    chart2 = px.bar( x="Model", y="MAE", title="MAE Comparison")
                     st.plotly_chart(chart2)
                     #-----------------Best Mode----------
-                    best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
+
+                    best_model = result_df.loc[result_df["R2 Score"].idxmax()]
                     st.success(f"🏆 Best Model: {best_model['Model']}")
 
 
