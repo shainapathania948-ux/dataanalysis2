@@ -282,7 +282,7 @@ if st.session_state.logged_in:
                     preds=model.predict(X_test)
                     r2 = r2_score(y_test, preds)
                     mae = mean_absolute_error(y_test, preds)
-                    results.append({
+                results.append({
                         "Model": name,
                         "R2 Score": round(r2, 3),
                         "MAE": round(mae, 3)
