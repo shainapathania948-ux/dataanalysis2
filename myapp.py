@@ -283,10 +283,10 @@ if st.session_state.logged_in:
                     r2 = r2_score(y_test, preds)
                     mae = mean_absolute_error(y_test, preds)
                     results.append({
-                        "Model": name,
-                        "R2 Score": round(r2, 3),
-                        "MAE": round(mae, 3)
-                    })
+                    "Model": name,
+                    "R2 Score": round(r2_score(y_test, preds), 3),
+                    "MAE": round(mean_absolute_error(y_test, preds), 3)
+                })
                     result_df = pd.DataFrame(results)
 
                     st.write("### 📊 Model Results")
