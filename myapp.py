@@ -302,7 +302,7 @@ if st.session_state.logged_in:
                     st.plotly_chart(chart2)
                     #-----------------Best Mode----------
 
-                    best_model = result_df.loc[result_df["R2 Score"].idxmax()]
+                    best_model = result_df["R2 Score"].idxmax()
                     st.success(f"🏆 Best Model: {best_model['Model']}")
 
 
