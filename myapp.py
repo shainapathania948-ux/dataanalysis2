@@ -306,7 +306,11 @@ if st.session_state.logged_in:
         else:
             st.warning("No numeric columns available")
    # ML MODEL
-if len(num_cols) > 1:
+if data is not None:
+    num_cols = data.select_dtypes(include="number").columns
+
+    if len(num_cols) > 1:
+        ...
     st.subheader("🤖 Model Comparison")
 
     target = st.selectbox(
