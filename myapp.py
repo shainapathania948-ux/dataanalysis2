@@ -294,9 +294,6 @@ if st.session_state.logged_in:
                     #-------------charts
                     st.write("### 📈 Performance Comparison")
 
-                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
-                    st.plotly_chart(chart)
-
                     chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
                     st.plotly_chart(chart2)
                     #-----------------Best Mode----------
