@@ -305,51 +305,74 @@ if st.session_state.logged_in:
                 st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No numeric columns available")
+   # ML MODEL
+if len(num_cols) > 1:
+    st.subheader("🤖 Model Comparison")
 
-    # ML MODEL
-    if len(num_cols) > 1:
-        st.subheader("🤖 Model Comparison")
+    target = st.selectbox(
+        "Select Target Column",
+        num_cols,
+        key="target_col"
+    )
 
-        target = st.selectbox("Select Target Column", num_cols)
+    if st.button("Compare Models", key="compare_models"):
 
-        if st.button("Compare Models"):
+        df_ml = data[num_cols].dropna()
 
-            df = data[num_cols].dropna()
-            X = df.drop(columns=[target])
-            y = df[target]
+        X = df_ml.drop(columns=[target])
+        y = df_ml[target]
 
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42
-            )
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
-            models = {
-                "Linear Regression": LinearRegression(),
-                "Decision Tree": DecisionTreeRegressor(),
-                "Random Forest": RandomForestRegressor()
-            }
+        models = {
+            "Linear Regression": LinearRegression(),
+            "Decision Tree": DecisionTreeRegressor(),
+            "Random Forest": RandomForestRegressor()
+        }
 
-            results = []
+        results = []
 
-            for name, model in models.items():
-                model.fit(X_train, y_train)
-                preds = model.predict(X_test)
+        for name, model in models.items():
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
 
-                results.append({
-                    "Model": name,
-                    "R2 Score": round(r2_score(y_test, preds), 3),
-                    "MAE": round(mean_absolute_error(y_test, preds), 3)
-                })
+            results.append({
+                "Model": name,
+                "R2 Score": round(r2_score(y_test, preds), 3),
+                "MAE": round(mean_absolute_error(y_test, preds), 3)
+            })
 
-            result_df = pd.DataFrame(results)
-            st.dataframe(result_df)
+        result_df = pd.DataFrame(results)
 
-            best_model = result_df.sort_values(
-                by="R2 Score",
-                ascending=False
-            ).iloc[0]
+        st.write("### 📊 Model Results")
+        st.dataframe(result_df)
 
-            st.success(f"🏆 Best Model: {best_model['Model']}")
+        st.write("### 📈 Performance Comparison")
 
+        fig1 = px.bar(
+            result_df,
+            x="Model",
+            y="R2 Score",
+            title="R2 Score Comparison"
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+
+        fig2 = px.bar(
+            result_df,
+            x="Model",
+            y="MAE",
+            title="MAE Comparison"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+        best_model = result_df.sort_values(
+            by="R2 Score",
+            ascending=False
+        ).iloc[0]
+
+        st.success(f"🏆 Best Model: {best_model['Model']}")
     # AI INSIGHTS
     st.subheader("🧠 Smart Insights")
 
