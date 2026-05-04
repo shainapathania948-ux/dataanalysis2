@@ -300,9 +300,8 @@ if st.session_state.logged_in:
                     chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
                     st.plotly_chart(chart2)
                     #-----------------Best Mode----------
-                    best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
-                    st.success(f"🏆 Best Model: {best_model['Model']}")
-
+                    best_model = result_df.loc[result_df["R2 Score"].idxmax()]
+            st.success(f"🏆 Best Model: {best_model['Model']}")
 
                 
 
