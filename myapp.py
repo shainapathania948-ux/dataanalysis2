@@ -270,13 +270,13 @@ if st.session_state.logged_in:
             clean_column(c) for c in data.columns
         ]
 
-        # CONVERT NUMERIC COLUMNS
+        # FIX NUMERIC CONVERSION
         for col in data.columns:
 
-            data[col] = pd.to_numeric(
-                data[col],
-                errors="ignore"
-            )
+            try:
+                data[col] = pd.to_numeric(data[col])
+            except:
+                pass
 
         # LOG ACTION
         log_action(
@@ -346,10 +346,7 @@ if st.session_state.logged_in:
             for _, row in data.iterrows():
 
                 cursor.execute(
-                    f"""
-                    INSERT INTO {table_name}
-                    VALUES ({','.join(['?']*len(row))})
-                    """,
+                    f"INSERT INTO {table_name} VALUES ({','.join(['?']*len(row))})",
                     tuple(row.astype(str))
                 )
 
@@ -611,5 +608,5 @@ if st.session_state.logged_in:
 
 # ---------------- LOGIN MESSAGE ----------------
 else:
+
     st.warning("🔒 Please Login First")
-    
