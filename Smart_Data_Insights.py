@@ -609,4 +609,4 @@ if st.session_state.logged_in:
 # ---------------- LOGIN MESSAGE ----------------
 else:
 
-    st.warning("🔒 Please Login First")
+    st.warning("🔒 Please Signup First")
