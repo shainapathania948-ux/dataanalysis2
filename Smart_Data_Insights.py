@@ -411,7 +411,7 @@ if st.session_state.logged_in:
             c1, c2, c3 = st.columns(3)
 
             c1.metric(
-                📈 Average Value",
+               "📈 Average Value",
                  round(data[kpi_col].mean(), 2)
             )
             
