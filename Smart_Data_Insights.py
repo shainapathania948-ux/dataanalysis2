@@ -255,23 +255,28 @@ if st.session_state.logged_in:
         type=["csv", "xlsx"]
     )
 
-    data = None
+    if "data" not in st.session_state:
+     st.session_state.data = None
+ 
+     data = st.session_state.data
 
     if file:
 
         # READ FILE
         if file.name.endswith("csv"):
             data = pd.read_csv(file)
-        else:
+    else:
             data = pd.read_excel(file)
 
+            st.session_state.data = data.copy()
+            data = st.session_state.data
         # CLEAN COLUMN NAMES
-        data.columns = [
-            clean_column(c) for c in data.columns
-        ]
+            data.columns = [
+                 clean_column(c) for c in data.columns
+             ]
 
         # FIX NUMERIC CONVERSION
-        for col in data.columns:
+    for col in data.columns:
 
             try:
                 data[col] = pd.to_numeric(data[col])
@@ -279,64 +284,66 @@ if st.session_state.logged_in:
                 pass
 
         # LOG ACTION
-        log_action(
-            st.session_state.username,
+    log_action(
+        st.session_state.username,
             "Uploaded File"
         )
 
         # SHOW DATA
-        st.subheader("📄 Uploaded Data")
-
-        st.dataframe(
+    st.subheader("📄 Uploaded Data")
+  
+    st.dataframe(
             data,
             use_container_width=True
         )
 
         # ---------------- METRICS ----------------
-        c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-        c1.metric("Rows", data.shape[0])
-        c2.metric("Columns", data.shape[1])
-        c3.metric("Missing Values", data.isnull().sum().sum())
+    c1.metric("Rows", data.shape[0])
+    c2.metric("Columns", data.shape[1])
+    c3.metric("Missing Values", data.isnull().sum().sum())
 
         # ---------------- CLEANING ----------------
-        st.subheader("🧹 Data Cleaning")
+    st.subheader("🧹 Data Cleaning")
 
-        if st.checkbox("Remove Missing Values"):
+    if st.checkbox("Remove Missing Values"):
             data = data.dropna()
 
-        if st.checkbox("Remove Duplicate Rows"):
+    if st.checkbox("Remove Duplicate Rows"):
             data = data.drop_duplicates()
 
         # ---------------- FILTER ----------------
-        st.subheader("🔍 Data Filter")
+    st.subheader("🔍 Data Filter")
 
-        filter_col = st.selectbox(
+    filter_col = st.selectbox(
             "Select Column",
             data.columns
         )
 
-        filter_val = st.text_input("Enter Value")
+    filter_val = st.text_input("Enter Value")
 
-        if st.button("Apply Filter"):
+    if st.button("Apply Filter"):
 
-            data = data[
-                data[filter_col]
-                .astype(str)
-                .str.contains(filter_val)
-            ]
+      filtered_data = data[
+        data[filter_col]
+        .astype(str)
+        .str.contains(filter_val)
+    ]
 
-            st.dataframe(
+    st.session_state.data = filtered_data.copy()
+    data = st.session_state.data
+    st.dataframe(
                 data,
                 use_container_width=True
             )
 
         # ---------------- SAVE TO DATABASE ----------------
-        st.subheader("💾 Save Data")
+    st.subheader("💾 Save Data")
 
-        table_name = st.text_input("Table Name")
+    table_name = st.text_input("Table Name")
 
-        if st.button("Save to Database"):
+    if st.button("Save to Database"):
 
             create_table(
                 table_name,
@@ -367,13 +374,14 @@ if st.session_state.logged_in:
         )
 
         if st.button("Load Data"):
+          st.session_state.data = pd.read_sql(
+    f"SELECT * FROM {selected_table}",
+    conn
+)
 
-            data = pd.read_sql(
-                f"SELECT * FROM {selected_table}",
-                conn
-            )
+          data = st.session_state.data
 
-            st.dataframe(
+          st.dataframe(
                 data,
                 use_container_width=True
             )
