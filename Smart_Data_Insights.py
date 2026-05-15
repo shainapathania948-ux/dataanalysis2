@@ -3,27 +3,22 @@ import plotly.express as px
 import streamlit as st
 import sqlite3
 import hashlib
-
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(
-    page_title="SMART DATA INSIGHTS",
-    page_icon="📊",
-    layout="wide"
-)
+# ------------------ PAGE SETUP ------------------
+st.set_page_config(page_title="SMART DATA INSIGHTS", page_icon="📈", layout="wide")
 
-# ---------------- DATABASE ----------------
+# ------------------ DATABASE ------------------
 conn = sqlite3.connect("data.db", check_same_thread=False)
 cursor = conn.cursor()
 
-# ---------------- CREATE TABLES ----------------
+# ------------------ TABLES ------------------
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
+CREATE TABLE IF NOT EXISTS users ( 
     username TEXT PRIMARY KEY,
     password TEXT,
     role TEXT
@@ -31,590 +26,306 @@ CREATE TABLE IF NOT EXISTS users(
 """)
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS logs(
+CREATE TABLE IF NOT EXISTS logs (
     username TEXT,
     action TEXT
 )
 """)
-
 conn.commit()
 
-# ---------------- FUNCTIONS ----------------
+# ------------------ FUNCTIONS ------------------
 def make_hash(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def log_action(user, action):
-    cursor.execute(
-        "INSERT INTO logs VALUES (?, ?)",
-        (user, action)
-    )
+    cursor.execute("INSERT INTO logs VALUES (?, ?)", (user, action))
     conn.commit()
 
 def add_user(username, password, role):
-
-    cursor.execute(
-        "INSERT INTO users VALUES (?, ?, ?)",
-        (username, make_hash(password), role)
-    )
-
+    cursor.execute("INSERT INTO users VALUES (?, ?, ?)", 
+                   (username, make_hash(password), role))
     conn.commit()
 
 def login_user(username, password):
-
-    cursor.execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
-        (username, make_hash(password))
-    )
-
+    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", 
+                   (username, make_hash(password)))
     return cursor.fetchone()
 
 def clean_column(col):
-
-    return col.strip()\
-        .replace(" ", "_")\
-        .replace("%", "percent")\
-        .replace("(", "")\
-        .replace(")", "")\
-        .replace("-", "_")
+    return col.strip().replace(" ", "_").replace("%","percent").replace("(","").replace(")","").replace("-","_")
 
 def create_table(table_name, columns):
-
-    cols = ", ".join(
-        [f'"{clean_column(col)}" TEXT' for col in columns]
-    )
-
-    cursor.execute(
-        f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols})'
-    )
-
+    cols = ", ".join([f'"{clean_column(col)}" TEXT' for col in columns])
+    cursor.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols})')
     conn.commit()
 
 def get_tables():
-
-    cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    )
-
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     return [table[0] for table in cursor.fetchall()]
 
-# ---------------- SMART AI ----------------
+# ------------------ SMART AI ------------------
 def detect_domain(df):
-
     cols = " ".join(df.columns).lower()
-
-    if any(x in cols for x in ["sales", "revenue", "profit", "customer"]):
+    if any(x in cols for x in ["sales","revenue","profit","customer"]):
         return "Sales"
-
-    elif any(x in cols for x in ["student", "marks", "school", "attendance"]):
+    elif any(x in cols for x in ["student","marks","school","attendance"]):
         return "Education"
-
     return "General"
 
+def generate_steps(df):
+    steps = ["✔ Data Loaded"]
+    if df.isnull().sum().sum()>0:
+        steps.append("✔ Missing values handled")
+    if df.duplicated().sum()>0:
+        steps.append("✔ Duplicates removed")
+    steps += ["✔ Data Filtered","✔ Visualization Created","✔ Model Applied"]
+    return steps
+
 def generate_insights(df):
-
     insights = []
-
     num_cols = df.select_dtypes(include='number').columns
-
     for col in num_cols:
-
-        insights.append(
-            f"{col} → Avg: {round(df[col].mean(),2)} | "
-            f"Max: {df[col].max()} | "
-            f"Min: {df[col].min()}"
-        )
-
+        insights.append(f"{col} → Avg:{round(df[col].mean(),2)}, Max:{df[col].max()}, Min:{df[col].min()}")
     return insights
 
 def generate_recommendations(domain):
-
-    if domain == "Sales":
-
+    if domain=="Sales":
         return [
             "Increase focus on high revenue products",
-            "Improve low performing regions",
             "Target repeat customers",
+            "Improve low-performing regions",
             "Run marketing campaigns"
         ]
-
-    elif domain == "Education":
-
+    elif domain=="Education":
         return [
             "Improve weak students performance",
             "Analyze attendance vs marks",
-            "Provide scholarships",
+            "Introduce scholarships",
             "Improve teaching quality"
         ]
-
     return [
-        "Focus on important data segments",
-        "Improve low performing areas",
-        "Use trends for decision making"
+        "Focus on high-value data segments",
+        "Improve low-performing areas",
+        "Use trends for decisions"
     ]
 
-# ---------------- SESSION ----------------
+def prediction_tips():
+    return [
+        "Use more features",
+        "Remove outliers",
+        "Try advanced ML models",
+        "Increase dataset size"
+    ]
+
+# ------------------ SESSION ------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ---------------- SIDEBAR ----------------
+# ------------------ AUTH ------------------
 st.sidebar.title("🔐 Authentication")
+menu = st.sidebar.selectbox("Menu", ["Login", "Signup"])
 
-menu = st.sidebar.selectbox(
-    "Menu",
-    ["Login", "Signup"]
-)
-
-# ---------------- SIGNUP ----------------
 if menu == "Signup":
-
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
-
-    r = st.selectbox(
-        "Role",
-        ["user", "admin"]
-    )
+    r = st.selectbox("Role", ["user","admin"])
 
     if st.button("Signup"):
-
         try:
-
-            add_user(u, p, r)
-
-            st.success("Account Created Successfully ✅")
-
+            add_user(u,p,r)
+            st.success("Account created ✅")
         except:
+            st.error("User already exists")
 
-            st.error("User Already Exists")
-
-# ---------------- LOGIN ----------------
 elif menu == "Login":
-
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-
-        user = login_user(u, p)
-
+        user = login_user(u,p)
         if user:
-
-            st.session_state.logged_in = True
-            st.session_state.username = user[0]
-            st.session_state.role = user[2]
-
+            st.session_state.logged_in=True
+            st.session_state.username=user[0]
+            st.session_state.role=user[2]
             st.success(f"Welcome {user[0]} 👋")
-
         else:
+            st.error("Invalid credentials")
 
-            st.error("Invalid Credentials")
-
-# ---------------- LOGOUT ----------------
+# ------------------ LOGOUT ------------------
 if st.session_state.logged_in:
-
     if st.sidebar.button("Logout"):
-
         st.session_state.clear()
         st.rerun()
 
-# ================= MAIN APP =================
+# ================== MAIN APP ==================
 if st.session_state.logged_in:
 
     st.title("📊 SMART DATA INSIGHTS")
 
-    # ---------------- ADMIN PANEL ----------------
+    # ------------------ ADMIN PANEL ------------------
     if st.session_state.role == "admin":
-
         st.sidebar.subheader("🛠 Admin Panel")
 
         if st.sidebar.button("View Users"):
-
-            users = pd.read_sql(
-                "SELECT username, role FROM users",
-                conn
-            )
-
+            users = pd.read_sql("SELECT username, role FROM users", conn)
             st.dataframe(users)
 
         del_user = st.sidebar.text_input("Delete User")
-
         if st.sidebar.button("Delete"):
-
-            cursor.execute(
-                "DELETE FROM users WHERE username=?",
-                (del_user,)
-            )
-
+            cursor.execute("DELETE FROM users WHERE username=?", (del_user,))
             conn.commit()
+            st.success("User Deleted")
 
-            st.success("User Deleted Successfully")
-
-    # ---------------- FILE UPLOAD ----------------
-    file = st.file_uploader(
-        "Upload CSV or Excel File",
-        type=["csv", "xlsx"]
-    )
-
-    if "data" not in st.session_state:
-     st.session_state.data = None
- 
-     data = st.session_state.data
+    # ------------------ FILE UPLOAD ------------------
+    file = st.file_uploader("Upload CSV/Excel", type=["csv","xlsx"])
+    data = None
 
     if file:
+        data = pd.read_csv(file) if file.name.endswith("csv") else pd.read_excel(file)
+        data.columns=[clean_column(c) for c in data.columns]
 
-        # READ FILE
-        if file.name.endswith("csv"):
-            data = pd.read_excel(file, engine="openpyxl")
-    else:
-            data = pd.read_excel(file)
+        log_action(st.session_state.username, "Uploaded File")
 
-            st.session_state.data = data.copy()
-            data = st.session_state.data
-        # CLEAN COLUMN NAMES
-            data.columns = [
-                 clean_column(c) for c in data.columns
-             ]
+        st.dataframe(data)
 
-        # FIX NUMERIC CONVERSION
-    for col in data.columns:
+        # METRICS
+        c1,c2,c3 = st.columns(3)
+        c1.metric("Rows",data.shape[0])
+        c2.metric("Columns",data.shape[1])
+        c3.metric("Missing",data.isnull().sum().sum())
 
-            try:
-                data[col] = pd.to_numeric(data[col])
-            except:
-                pass
+        # CLEAN
+        if st.checkbox("Remove Missing"): data=data.dropna()
+        if st.checkbox("Remove Duplicates"): data=data.drop_duplicates()
 
-        # LOG ACTION
-    log_action(
-        st.session_state.username,
-            "Uploaded File"
-        )
+        # FILTER
+        col = st.selectbox("Filter Column", data.columns)
+        val = st.text_input("Value")
+        if st.button("Apply Filter"):
+            data = data[data[col].astype(str).str.contains(val)]
+            st.dataframe(data)
 
-        # SHOW DATA
-    st.subheader("📄 Uploaded Data")
-  
-    st.dataframe(
-            data,
-            use_container_width=True
-        )
-
-        # ---------------- METRICS ----------------
-    c1, c2, c3 = st.columns(3)
-
-    c1.metric("Rows", data.shape[0])
-    c2.metric("Columns", data.shape[1])
-    c3.metric("Missing Values", data.isnull().sum().sum())
-
-        # ---------------- CLEANING ----------------
-    st.subheader("🧹 Data Cleaning")
-
-    if st.checkbox("Remove Missing Values"):
-            data = data.dropna()
-
-    if st.checkbox("Remove Duplicate Rows"):
-            data = data.drop_duplicates()
-
-        # ---------------- FILTER ----------------
-    st.subheader("🔍 Data Filter")
-
-    filter_col = st.selectbox(
-            "Select Column",
-            data.columns
-        )
-
-    filter_val = st.text_input("Enter Value")
-
-    if st.button("Apply Filter"):
-
-      filtered_data = data[
-        data[filter_col]
-        .astype(str)
-        .str.contains(filter_val)
-    ]
-
-    st.session_state.data = filtered_data.copy()
-    data = st.session_state.data
-    st.dataframe(
-                data,
-                use_container_width=True
-            )
-
-        # ---------------- SAVE TO DATABASE ----------------
-    st.subheader("💾 Save Data")
-
-    table_name = st.text_input("Table Name")
-
-    if st.button("Save to Database"):
-
-            create_table(
-                table_name,
-                data.columns
-            )
-
+        # SAVE
+        table_name = st.text_input("Table Name")
+        if st.button("Save to DB"):
+            create_table(table_name, data.columns)
             for _, row in data.iterrows():
-
-                cursor.execute(
-                    f"INSERT INTO {table_name} VALUES ({','.join(['?']*len(row))})",
-                    tuple(row.astype(str))
-                )
-
+                cursor.execute(f"INSERT INTO {table_name} VALUES ({','.join(['?']*len(row))})", tuple(row.astype(str)))
             conn.commit()
+            st.success("Saved to DB")
 
-            st.success("Data Saved Successfully ✅")
-
-    # ---------------- LOAD SAVED DATA ----------------
-    st.subheader("📂 Load Saved Data")
-
+    # LOAD DB
+    st.subheader("📂 Load Data")
     tables = get_tables()
 
     if tables:
+        selected = st.selectbox("Select Table", tables)
+        if st.button("Load"):
+            data = pd.read_sql(f"SELECT * FROM {selected}", conn)
+            st.dataframe(data)
 
-        selected_table = st.selectbox(
-            "Select Table",
-            tables
-        )
-
-        if st.button("Load Data"):
-          st.session_state.data = pd.read_sql(
-    f"SELECT * FROM {selected_table}",
-    conn
-)
-
-          data = st.session_state.data
-
-          st.dataframe(
-                data,
-                use_container_width=True
-            )
-
-    # ================= ANALYSIS =================
+    # ANALYSIS
     if data is not None:
 
-        st.subheader("📊 Data Analysis")
+        st.subheader("📊 Analysis")
+        st.dataframe(data.describe())
 
-        st.dataframe(
-            data.describe(include='all'),
-            use_container_width=True
-        )
-
-        # NUMERIC COLUMNS
         num_cols = data.select_dtypes(include='number').columns
 
-        # ---------------- KPI ----------------
-        if len(num_cols) > 0:
+        # KPI
+        if len(num_cols)>0:
+            col = st.selectbox("KPI Column",num_cols)
+            c1,c2,c3 = st.columns(3)
+            c1.metric("Mean",round(data[col].mean(),2))
+            c2.metric("Max",data[col].max())
+            c3.metric("Min",data[col].min())
 
-            kpi_col = st.selectbox(
-                "Select KPI Column",
-                num_cols
-            )
+        # GROUPBY
+        g_cols = st.multiselect("Group Columns", data.columns)
+        op_col = st.selectbox("Operation Column", data.columns)
+        op = st.selectbox("Operation", ["sum","mean","max","min"])
 
-            c1, c2, c3 = st.columns(3)
+        result = data.groupby(g_cols).agg({op_col:op}).reset_index() if g_cols else data
 
-            c1.metric(
-                "Mean",
-                round(data[kpi_col].mean(), 2)
-            )
+        # VISUAL
+        chart = st.selectbox("Chart",["line","bar","scatter","pie"])
+        x = st.selectbox("X",result.columns)
+        y = st.selectbox("Y",result.columns)
 
-            c2.metric(
-                "Maximum",
-                data[kpi_col].max()
-            )
+        if chart=="line": st.plotly_chart(px.line(result,x=x,y=y))
+        elif chart=="bar": st.plotly_chart(px.bar(result,x=x,y=y))
+        elif chart=="scatter": st.plotly_chart(px.scatter(result,x=x,y=y))
+        elif chart=="pie": st.plotly_chart(px.pie(result,names=x,values=y))
 
-            c3.metric(
-                "Minimum",
-                data[kpi_col].min()
-            )
-
-        # ---------------- GROUP ANALYSIS ----------------
-        st.subheader("📈 Group Analysis")
-
-        group_cols = st.multiselect(
-            "Group By Columns",
-            data.columns
-        )
-
-        operation_col = st.selectbox(
-            "Operation Column",
-            data.columns
-        )
-
-        operation = st.selectbox(
-            "Operation",
-            ["sum", "mean", "max", "min"]
-        )
-
-        if group_cols:
-
-            result = data.groupby(group_cols).agg(
-                {operation_col: operation}
-            ).reset_index()
-
-        else:
-
-            result = data
-
-        # ---------------- VISUALIZATION ----------------
-        st.subheader("📉 Visualization")
-
-        chart_type = st.selectbox(
-            "Chart Type",
-            ["line", "bar", "scatter", "pie"]
-        )
-
-        x = st.selectbox("X Axis", result.columns)
-        y = st.selectbox("Y Axis", result.columns)
-
-        if chart_type == "line":
-            fig = px.line(result, x=x, y=y)
-
-        elif chart_type == "bar":
-            fig = px.bar(result, x=x, y=y)
-
-        elif chart_type == "scatter":
-            fig = px.scatter(result, x=x, y=y)
-
-        elif chart_type == "pie":
-            fig = px.pie(result, names=x, values=y)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-        # ================= MACHINE LEARNING =================
+        # ML
         if len(num_cols) > 1:
-
             st.subheader("🤖 Model Comparison")
 
-            target = st.selectbox(
-                "Select Target Column",
-                num_cols
-            )
+            target = st.selectbox("Select Target Column", num_cols)
 
             if st.button("Compare Models"):
 
-                ml_data = data[num_cols].dropna()
+                df = data[num_cols].dropna()
 
-                X = ml_data.drop(columns=[target])
-                y = ml_data[target]
+                X = df.drop(columns=[target])
+                y = df[target]
 
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X,
-                    y,
-                    test_size=0.2,
-                    random_state=42
-                )
-
-                models = {
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+                models={
                     "Linear Regression": LinearRegression(),
-                    "Decision Tree": DecisionTreeRegressor(random_state=42),
-                    "Random Forest": RandomForestRegressor(random_state=42)
+                    "Decision Tree": DecisionTreeRegressor(),
+                    "Random Forest": RandomForestRegressor()
                 }
-
-                results = []
-
-                for name, model in models.items():
-
-                    model.fit(X_train, y_train)
-
-                    preds = model.predict(X_test)
-
+                results=[]
+                for name,model in models.items():
+                    model.fit(X_train,y_train)
+                    preds=model.predict(X_test)
                     r2 = r2_score(y_test, preds)
-
                     mae = mean_absolute_error(y_test, preds)
-
                     results.append({
                         "Model": name,
                         "R2 Score": round(r2, 3),
                         "MAE": round(mae, 3)
                     })
+                    result_df = pd.DataFrame(results)
 
-                result_df = pd.DataFrame(results)
+                    st.write("### 📊 Model Results")
+                    st.dataframe(result_df)
+                    #-------------charts
+                    st.write("### 📈 Performance Comparison")
 
-                # BEST MODEL
-                best_model = result_df.sort_values(
-                    by="R2 Score",
-                    ascending=False
-                ).iloc[0]
+                    chart = px.bar(result_df, x="Model", y="R2 Score", title="R2 Score Comparison")
+                    st.plotly_chart(chart)
 
-                st.success(
-                    f"🏆 Best Model is: {best_model['Model']} "
-                    f"| R2 Score: {best_model['R2 Score']}"
-                )
+                    chart2 = px.bar(result_df, x="Model", y="MAE", title="MAE Comparison")
+                    st.plotly_chart(chart2)
+                    #-----------------Best Mode----------
+                    best_model = result_df.sort_values(by="R2 Score", ascending=False).iloc[0]
+                    st.success(f"🏆 Best Model: {best_model['Model']}")
 
-                # RESULTS TABLE
-                st.write("### 📊 Model Results")
 
-                st.dataframe(
-                    result_df,
-                    use_container_width=True
-                )
+                
 
-                # R2 CHART
-                st.write("### 📈 R2 Score Comparison")
-
-                fig1 = px.bar(
-                    result_df,
-                    x="Model",
-                    y="R2 Score",
-                    text="R2 Score"
-                )
-
-                fig1.update_traces(
-                    textposition="outside"
-                )
-
-                st.plotly_chart(
-                    fig1,
-                    use_container_width=True
-                )
-
-                # MAE CHART
-                st.write("### 📉 MAE Comparison")
-
-                fig2 = px.bar(
-                    result_df,
-                    x="Model",
-                    y="MAE",
-                    text="MAE"
-                )
-
-                fig2.update_traces(
-                    textposition="outside"
-                )
-
-                st.plotly_chart(
-                    fig2,
-                    use_container_width=True
-                )
-
-        # ================= SMART INSIGHTS =================
+        # AI INSIGHTS
         st.subheader("🧠 Smart Insights")
 
-        domain = detect_domain(data)
+        domain=detect_domain(data)
+        st.write(f"Dataset Type: **{domain}**")
 
-        st.write(f"### Dataset Type: {domain}")
+        #st.write("### Steps")
+        # for s in generate_steps(data): st.write(s)
 
         st.write("### Insights")
-
-        for insight in generate_insights(data):
-
-            st.write(f"✔ {insight}")
+        for i in generate_insights(data): st.write(i)
 
         st.write("### Recommendations")
+        for r in generate_recommendations(domain): st.write(r)
 
-        for rec in generate_recommendations(domain):
+        #st.write("### Improve Prediction")
+        #for t in prediction_tips(): st.write(t)
 
-            st.write(f"✔ {rec}")
+        # EXPORT
+        st.download_button("Download CSV",data.to_csv(index=False),"data.csv")
 
-        # ---------------- DOWNLOAD ----------------
-        st.download_button(
-            "⬇ Download CSV",
-            data.to_csv(index=False),
-            "data.csv",
-            "text/csv"
-        )
-
-# ---------------- LOGIN MESSAGE ----------------
 else:
-
-    st.warning("🔒 Please Signup First")
+    st.warning("🔒 Please login")
