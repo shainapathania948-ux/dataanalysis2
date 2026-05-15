@@ -307,29 +307,36 @@ if st.session_state.logged_in:
 
         if st.checkbox("Remove Duplicate Rows"):
             data = data.drop_duplicates()
+ 
+       # ---------------- FILTER ----------------
+        st.subheader("🔍 Advanced Data Filter")
+        filtered_data = data.copy()
+        filter_columns = st.multiselect("Select Columns for Filtering", data.columns)
 
-        # ---------------- FILTER ----------------
-        st.subheader("🔍 Data Filter")
+        for col in filter_columns:
+            if pd.api.types.is_numeric_dtype(filtered_data[col]):
+                min_val = float(filtered_data[col].min())
+                max_val = float(filtered_data[col].max())
+                selected_range = st.slider(
+                    f"{col} Range",
+                    min_value=min_val,
+                    max_value=max_val,
+                    value=(min_val, max_val)
+                )
+                filtered_data = filtered_data[
+                    filtered_data[col].between(selected_range[0], selected_range[1])
+                ]
+            else:
+                options = filtered_data[col].astype(str).unique()
+                selected_values = st.multiselect(f"Select {col}", options)
+                if selected_values:
+                    filtered_data = filtered_data[
+                        filtered_data[col].astype(str).isin(selected_values)
+                    ]
 
-        filter_col = st.selectbox(
-            "Select Column",
-            data.columns
-        )
+        data = filtered_data.copy()
+        st.dataframe(data, use_container_width=True)
 
-        filter_val = st.text_input("Enter Value")
-
-        if st.button("Apply Filter"):
-
-            data = data[
-                data[filter_col]
-                .astype(str)
-                .str.contains(filter_val)
-            ]
-
-            st.dataframe(
-                data,
-                use_container_width=True
-            )
 
         # ---------------- SAVE TO DATABASE ----------------
         st.subheader("💾 Save Data")
