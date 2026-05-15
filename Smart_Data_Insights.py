@@ -264,7 +264,7 @@ if st.session_state.logged_in:
 
         # READ FILE
         if file.name.endswith("csv"):
-            data = pd.read_csv(file)
+            data = pd.read_excel(file, engine="openpyxl")
     else:
             data = pd.read_excel(file)
 
