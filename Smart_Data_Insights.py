@@ -399,6 +399,8 @@ if st.session_state.logged_in:
         num_cols = data.select_dtypes(include='number').columns
 
         # ---------------- KPI ----------------
+        st.subheader("📈 KPIs")
+
         if len(num_cols) > 0:
 
             kpi_col = st.selectbox(
