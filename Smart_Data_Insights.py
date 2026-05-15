@@ -399,32 +399,32 @@ if st.session_state.logged_in:
         num_cols = data.select_dtypes(include='number').columns
 
       # ---------------- KPI ----------------
-      if len(num_cols) > 0:
+       st.subheader("📈 KPIs")
 
-             st.subheader("📌 Key Performance Indicators (KPIs)")
+        if len(num_cols) > 0:
 
-              kpi_col = st.selectbox(
-             "Select KPI Column",
-             num_cols
+            kpi_col = st.selectbox(
+                "Select KPI Column",
+                num_cols
+            )
+
+            c1, c2, c3 = st.columns(3)
+
+            c1.metric(
+                📈 Average Value",
+                 round(data[kpi_col].mean(), 2)
+            )
+            
+            c2.metric(
+               "🔝 Maximum Value",
+                data[kpi_col].max()
+            )
+
+
+            c3.metric(
+               "🔻 Minimum Value",
+                data[kpi_col].min()
              )
-
-    c1, c2, c3 = st.columns(3)
-
-    c1.metric(
-        "📈 Average Value",
-        round(data[kpi_col].mean(), 2)
-    )
-
-    c2.metric(
-        "🔝 Maximum Value",
-        data[kpi_col].max()
-    )
-
-    c3.metric(
-        "🔻 Minimum Value",
-        data[kpi_col].min()
-    )
-
         # ---------------- GROUP ANALYSIS ----------------
         st.subheader("📈 Group Analysis")
 
