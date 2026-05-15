@@ -255,16 +255,15 @@ if st.session_state.logged_in:
         type=["csv", "xlsx"]
     )
 
-    if "data" not in st.session_state:
-       st.session_state.data = None
+    data = None
 
-if file:
-    if file.name.endswith("csv"):
-        st.session_state.data = pd.read_csv(file)
-    else:
-        st.session_state.data = pd.read_excel(file)
+    if file:
 
-        data = st.session_state.data
+        # READ FILE
+        if file.name.endswith("csv"):
+            data = pd.read_csv(file)
+        else:
+            data = pd.read_excel(file)
 
         # CLEAN COLUMN NAMES
         data.columns = [
@@ -308,37 +307,29 @@ if file:
 
         if st.checkbox("Remove Duplicate Rows"):
             data = data.drop_duplicates()
- 
-       # ---------------- FILTER ----------------
-        st.subheader("🔍 Advanced Data Filter")
-        filtered_data = data.copy()
-        filter_columns = st.multiselect("Select Columns for Filtering", data.columns)
 
-        for col in filter_columns:
-            if pd.api.types.is_numeric_dtype(filtered_data[col]):
-                min_val = float(filtered_data[col].min())
-                max_val = float(filtered_data[col].max())
-                selected_range = st.slider(
-                    f"{col} Range",
-                    min_value=min_val,
-                    max_value=max_val,
-                    value=(min_val, max_val)
-                )
-                filtered_data = filtered_data[
-                    filtered_data[col].between(selected_range[0], selected_range[1])
-                ]
-            else:
-                options = filtered_data[col].astype(str).unique()
-                selected_values = st.multiselect(f"Select {col}", options)
-                if selected_values:
-                    filtered_data = filtered_data[
-                        filtered_data[col].astype(str).isin(selected_values)
-                    ]
+        # ---------------- FILTER ----------------
+        st.subheader("🔍 Data Filter")
 
-        st.session_state.data = filtered_data.copy()
-        data = st.session_state.data
-        st.dataframe(data, use_container_width=True)
+        filter_col = st.selectbox(
+            "Select Column",
+            data.columns
+        )
 
+        filter_val = st.text_input("Enter Value")
+
+        if st.button("Apply Filter"):
+
+            data = data[
+                data[filter_col]
+                .astype(str)
+                .str.contains(filter_val)
+            ]
+
+            st.dataframe(
+                data,
+                use_container_width=True
+            )
 
         # ---------------- SAVE TO DATABASE ----------------
         st.subheader("💾 Save Data")
@@ -377,14 +368,12 @@ if file:
 
         if st.button("Load Data"):
 
-            st.session_state.data = pd.read_sql(
+            data = pd.read_sql(
                 f"SELECT * FROM {selected_table}",
                 conn
             )
 
-    data = st.session_state.data
-
-    st.dataframe(
+            st.dataframe(
                 data,
                 use_container_width=True
             )
@@ -621,4 +610,3 @@ if file:
 else:
 
     st.warning("🔒 Please Signup First")
-    
