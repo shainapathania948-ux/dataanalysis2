@@ -255,15 +255,16 @@ if st.session_state.logged_in:
         type=["csv", "xlsx"]
     )
 
-    data = None
+    if "data" not in st.session_state:
+       st.session_state.data = None
 
-    if file:
+if file:
+    if file.name.endswith("csv"):
+        st.session_state.data = pd.read_csv(file)
+    else:
+        st.session_state.data = pd.read_excel(file)
 
-        # READ FILE
-        if file.name.endswith("csv"):
-            data = pd.read_csv(file)
-        else:
-            data = pd.read_excel(file)
+        data = st.session_state.data
 
         # CLEAN COLUMN NAMES
         data.columns = [
@@ -334,7 +335,8 @@ if st.session_state.logged_in:
                         filtered_data[col].astype(str).isin(selected_values)
                     ]
 
-        data = filtered_data.copy()
+        st.session_state.data = filtered_data.copy()
+        data = st.session_state.data
         st.dataframe(data, use_container_width=True)
 
 
@@ -375,12 +377,14 @@ if st.session_state.logged_in:
 
         if st.button("Load Data"):
 
-            data = pd.read_sql(
+            st.session_state.data = pd.read_sql(
                 f"SELECT * FROM {selected_table}",
                 conn
             )
 
-            st.dataframe(
+    data = st.session_state.data
+
+    st.dataframe(
                 data,
                 use_container_width=True
             )
@@ -617,3 +621,4 @@ if st.session_state.logged_in:
 else:
 
     st.warning("🔒 Please Signup First")
+    
