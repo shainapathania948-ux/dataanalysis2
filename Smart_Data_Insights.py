@@ -452,6 +452,8 @@ if st.session_state.logged_in:
         else:
 
             result = data
+            st.write("### Group Analysis Result")
+            st.dataframe(result, use_container_width=True)
 
         # ---------------- VISUALIZATION ----------------
         st.subheader("📉 Visualization")
