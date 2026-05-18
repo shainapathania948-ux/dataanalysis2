@@ -428,28 +428,28 @@ if st.session_state.logged_in:
         # ---------------- GROUP ANALYSIS ----------------
        st.subheader("📈 Group Analysis")
 
-group_cols = st.multiselect(
-    "Group By Columns",
-    data.columns
-)
+       group_cols = st.multiselect(
+              "Group By Columns",
+               data.columns
+        )
 
-operation_col = st.selectbox(
-    "Operation Column",
-    num_cols
-)
+       operation_col = st.selectbox(
+               "Operation Column",
+                num_cols
+        )
 
-operation = st.selectbox(
-    "Operation",
-    ["sum", "mean", "max", "min"]
-)
+       operation = st.selectbox(
+             "Operation",
+             ["sum", "mean", "max", "min"]
+       )
 
-if group_cols:
-    result = data.groupby(group_cols)[operation_col].agg(operation).reset_index()
+       if group_cols:
+            result = data.groupby(group_cols)[operation_col].agg(operation).reset_index()
 
-    st.write("### Group Analysis Result")
-    st.dataframe(result, use_container_width=True)
-else:
-    result = data
+           st.write("### Group Analysis Result")
+           st.dataframe(result, use_container_width=True)
+       else:
+           result = data
 
         # ---------------- VISUALIZATION ----------------
         st.subheader("📉 Visualization")
